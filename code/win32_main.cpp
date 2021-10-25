@@ -15,10 +15,18 @@
 #include "common.h"
 #include "main.h"
 
+
+/*TODO:
+ *ADD KEYBOARD/MOUSE INPUT
+ *
+ */
+
+
 //will want to make this a timer class to get rid of globals and allow for more than one clock
 #define NOW() app_timer.getSecondsElapsed(app_timer.begin_, app_timer.getFrequencyClock())
 
 bool GLOBAL_RUNNING=true;
+
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam){
   LRESULT Result = 0;  
@@ -125,7 +133,7 @@ public:
   glm::vec3 position_{};
 
   /**
-   * @brief: responsible for creating the vao/vbo for display a basic shape like like a square or line
+   * @brief: responsible for creating the vao/vbo for displaying a basic shape like like a square or line
    * @param: the gpu shader reference
    * @param: starting world position of the object
    * @param: pointer to the vertices to pass to the gpu,
@@ -293,8 +301,6 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdSh
 	int vertexProjection = glGetUniformLocation(shader.get_handle(), "projectionMatrix");
 
 	glUseProgram(shader.get_handle());
-
-	//platform::LOGW("COMMON{} WHY");
 	
 	//ortho
 	glm::mat4 ortho = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f);	    
@@ -323,9 +329,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdSh
 	
 	/*
 	  TODO: if I make this load a dll for the objects I could hot-load and possibly add a console input functionality? 
-	  this would also get more more familiar with windows dlls and overall compiling.  
-
-a	  
+	  this would also get more more familiar with windows dlls and overall compiling.  	  
 	*/
 	while(GLOBAL_RUNNING){
 	  
@@ -333,7 +337,7 @@ a
 	  if(NOW() >= nextGameUpdate){
 	    
 	    dt = NOW() - lastGameUpdate; //game timestep
-	    nextGameUpdate = NOW() + targetSecPerUpdate;  
+	    nextGameUpdate = NOW() + targetSecPerUpdate;
 
 	    Win32ProcessPending(); //input	    
  
