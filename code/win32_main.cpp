@@ -1,32 +1,9 @@
-#include <iostream>
-#include <windows.h>
-#include <Winuser.h>
-#include <string>
-#include <complex>
-#include <chrono>
-
-#include <glm/glm.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include <GL/glew.h>
-
-#include "shader.h"
-#include "common.h"
-#include "main.h"
-
+#include "win32_main.h"
 
 /*TODO:
- *ADD KEYBOARD/MOUSE INPUT
- *
- */
-
-
-//will want to make this a timer class to get rid of globals and allow for more than one clock
-#define NOW() app_timer.getSecondsElapsed(app_timer.begin_, app_timer.getFrequencyClock())
-
+  ADD KEYBOARD/MOUSE INPUT
+*/
 bool GLOBAL_RUNNING=true;
-
 
 static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam){
   LRESULT Result = 0;  
@@ -37,8 +14,7 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
 	GLOBAL_RUNNING = false;
       } break;
     case WM_CREATE:
-      {
-	
+      {	
       }	break;
     case WM_SYSKEYDOWN:
     case WM_SYSKEYUP:
@@ -93,6 +69,9 @@ Win32ProcessPending(){
     }
 }
 
+/*
+  STUDY: a lot more you can do when creating the context, look into it.
+ */
 void CreateGLContext(HDC hdc){
   
   PIXELFORMATDESCRIPTOR pfd =
@@ -127,91 +106,6 @@ void CreateGLContext(HDC hdc){
   wglMakeCurrent(hdc, glHandleThing); 
 }
 
-//
-class Primitive{
-public:
-  glm::vec3 position_{};
-
-  /**
-   * @brief: responsible for creating the vao/vbo for displaying a basic shape like like a square or line
-   * @param: the gpu shader reference
-   * @param: starting world position of the object
-   * @param: pointer to the vertices to pass to the gpu,
-   * @param: size of the vertex array in bytes. 
-   * @param: the type of primitive drawing method to use, should be one of the open gl defined methods e.g. GL_LINES, GL_TRIANGLES
-   */
-  Primitive(uint32_t &Shader, glm::vec3 Pos, float *Vertices, size_t Size, int Method, glm::vec4 Color,
-	    float Length=1.0f, float Height=1.0f) :
-    shader_(Shader),
-    position_(Pos),
-    primitive_draw_method_(Method),
-    color_(Color),
-    length_(Length),
-    height_(Height)    
-  {
-    vertice_amount_ = Size/sizeof(Vertices[0]);
-    
-    //this is shader dependant and if you change the name in the shader you have to change it here, and if you have a different shaders with different names
-    world_model_ = glGetUniformLocation(Shader, "worldPos");    
-    frag_color_ = glGetUniformLocation(Shader, "ourColor");    
-    
-    //generate
-    glGenVertexArrays(1, &vao_);
-    glGenBuffers(1, &vbo_);
-    //bind
-    glBindVertexArray(vao_);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-    glBufferData(GL_ARRAY_BUFFER, Size, Vertices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    //enable above attribute.
-    glEnableVertexAttribArray(0); 
-
-    //unbind VBO
-    glBindBuffer(GL_ARRAY_BUFFER, 0); 
-    //unbind VAO
-    glBindVertexArray(0);
-  }
-
-  ~Primitive(){
-    glDeleteVertexArrays(1, &vao_);
-  }  
-  
-  //Draws an instance of the object
-  void draw(WorldObject &object, glm::mat4 &ortho){
-    assert(primitive_draw_method_ > -1);
-    
-    model_ = glm::mat4(1.0f);
-    model_ = glm::translate(model_, object.position_);
-    model_ = glm::scale(model_, glm::vec3(length_, height_, 1.0f));
-
-    glUseProgram(shader_);
-    
-    glUniformMatrix4fv(world_model_, 1, false, &model_[0][0]);
-    glUniform4fv(frag_color_, 1, &object.color_[0]);
-  
-    glBindVertexArray(vao_);
-    glDrawArrays(primitive_draw_method_, 0, vertice_amount_);
-    
-    glUseProgram(0);
-  }  
-  
-private:  
-  int primitive_draw_method_ = -1;
-  float length_, height_ = 1.0f;
-  uint32_t vertice_amount_ = 0;
-  glm::mat4 model_ = glm::mat4(1.0f);
-  
-  glm::vec4 color_{1.0f};
-  unsigned int vbo_, vao_ = 0;
-
-  uint32_t &shader_;
-  //uniform handles:
-  int world_model_ = 0;
-  int frag_color_ = 0;
-  
-};
 
 int CALLBACK
 WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow){  
@@ -312,7 +206,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdSh
 
 	glUseProgram(0);	    
 
-	//primitive which sets up the vbo/vao with a simple draw function
+	//primitive which sets up the vbo/vao with a simple draw function + some default values
 	Primitive square{shader.get_handle(), {0.0f, 0.0f, 0.0f}, cube_v, sizeof(cube_v), GL_TRIANGLES, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)};	
 	Primitive line{shader.get_handle(), {0.0f, 0.0f, 1.0f}, line_v, sizeof(line_v), GL_LINES, glm::vec4(1.0f), 90.0f, 90.0f};
 		
@@ -334,8 +228,7 @@ WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdSh
 	while(GLOBAL_RUNNING){
 	  
 	  //----------------- UPDATE WORLD ------------------
-	  if(NOW() >= nextGameUpdate){
-	    
+	  if(NOW() >= nextGameUpdate){	    
 	    dt = NOW() - lastGameUpdate; //game timestep
 	    nextGameUpdate = NOW() + targetSecPerUpdate;
 
